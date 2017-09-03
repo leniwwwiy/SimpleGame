@@ -2,6 +2,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public class RaycastInfo
+{
+    public Vector3 source, direction;
+    public List<RaycastHit2D> hits;
+    public List<Vector3> outDirections;
+    public int count;
+    public RaycastInfo()
+    {
+        hits = new List<RaycastHit2D>();
+        outDirections = new List<Vector3>();
+        count = 0;
+    }
+
+    public void AddHit(RaycastHit2D hit, Vector3 outDirection)
+    {
+        hits.Add(hit);
+        outDirections.Add(outDirection);
+        count++;
+    }
+}
+
 public class UnitController : MonoBehaviour
 {
     public float UnitSpeed, UnitRotationSpeed;
@@ -10,7 +31,7 @@ public class UnitController : MonoBehaviour
     public float callDown;
     private float timer;
     private const int reflectAngle = 85;
-
+    
     void Start()
     {
         gun = GetComponent<Weapon>();
@@ -44,9 +65,19 @@ public class UnitController : MonoBehaviour
         transform.position = transform.position + transform.right * (-UnitSpeed);
     }
 
+    public void RotateLeft(float angle)
+    {
+        transform.Rotate(0, 0, -Mathf.Max(UnitRotationSpeed, angle));
+    }
+
     public void RotateLeft()
     {
         transform.Rotate(0, 0, -UnitRotationSpeed);
+    }
+
+    public void RotateRight(float angle)
+    {
+        transform.Rotate(0, 0, Mathf.Max(UnitRotationSpeed, angle));
     }
 
     public void RotateRight()
@@ -54,69 +85,46 @@ public class UnitController : MonoBehaviour
         transform.Rotate(0, 0, UnitRotationSpeed);
     }
 
-    public List<GameObject> raycastTargets(int deep)
+    public List<RaycastInfo> raycastTargets(int deep)
     {
-        List<GameObject> ans = new List<GameObject>();
+        List<RaycastInfo> ans = new List<RaycastInfo>();
         float angle = 1f;
 
-        Stack<KeyValuePair<Vector3, Vector3>> stack = new Stack<KeyValuePair<Vector3, Vector3>>();
         for (float i = 0; i < 360; i += angle)
         {
-            Vector3 source = transform.position + transform.up * (GetComponent<CircleCollider2D>().radius * transform.localScale.x + 0.1f);
+            RaycastInfo info = new RaycastInfo();
 
-            Vector3 nextDirection = transform.up;
-            if (Physics2D.Raycast(source, nextDirection))
+            info.source = transform.position + transform.up * (GetComponent<CircleCollider2D>().radius * transform.localScale.x + 0.1f);
+            info.direction = transform.up;
+            RaycastHit2D hit = Physics2D.Raycast(info.source, info.direction);
+            if (hit.collider != null)
             {
-                RaycastHit2D hit = Physics2D.Raycast(source, nextDirection);
-                if (hit.collider != null)
-                {
-                    Debug.DrawRay(source, transform.up * Vector3.Distance(source, hit.point), Color.red);
-                    if (hit.collider.gameObject.GetComponent<UnitController>())
-                    {
-
-                    }
-                    else
-                    {
-                        if (Mathf.Abs(Vector3.Angle(nextDirection, hit.normal) - reflectAngle) > 0.01)
-                        {
-                            stack.Push(new KeyValuePair<Vector3, Vector3>(hit.point, Vector3.Reflect(nextDirection, hit.normal)));
-                        }
-                    }
-                }
+                info.AddHit(hit, Vector3.Reflect(info.direction, hit.normal));
             }
             transform.Rotate(0, 0, angle);
+            ans.Add(info);
         }
 
-        for (int j = 0; j < deep; ++j)
+        for (int i=0; i<ans.Count; ++i)
         {
-            var stack2 = stack.ToArray();
-            stack.Clear();
-            for (int i = 0; i < stack2.Length; ++i)
+            RaycastInfo info = ans[i];
+            
+            for (int j = 0; j < deep && j < info.count; ++j)
             {
-                KeyValuePair<Vector3, Vector3> obj = stack2[i];
-                Vector3 source2 = obj.Key, dir = obj.Value;
-                dir.Normalize();
-                RaycastHit2D hit = Physics2D.Raycast(source2, dir);
-                if (hit && hit.collider != null)
+                RaycastHit2D oldHit = info.hits[j];
+                if (oldHit.collider.gameObject.GetComponent<UnitController>())
                 {
-                    if (hit.collider.gameObject.GetComponent<UnitController>())
-                    {
-                        Debug.DrawRay(source2, dir * Vector3.Distance(source2, hit.point), Color.blue);
-
-                    }
-                    else
-                    {
-
-                        Debug.DrawRay(source2, dir * Vector3.Distance(source2, hit.point), Color.red);
-                    }
-                    if (Mathf.Abs(Vector3.Angle(dir, hit.normal) - reflectAngle) > 0.01)
-                    {
-                        stack.Push(new KeyValuePair<Vector3, Vector3>(hit.point, Vector3.Reflect(dir, hit.normal)));
-                    }
+                    Debug.DrawRay(oldHit.point, info.outDirections[j] * Vector3.Distance(oldHit.point, oldHit.point), Color.red);
+                    continue;
                 }
                 else
                 {
-                    Debug.DrawRay(source2, dir * 10, Color.red);
+                    Debug.DrawRay(oldHit.point, info.outDirections[j] * Vector3.Distance(oldHit.point, oldHit.point), Color.blue);
+                }
+                RaycastHit2D hit = Physics2D.Raycast(oldHit.point + new Vector2(info.outDirections[j].x * 0.1f, info.outDirections[j].y * 0.1f), info.outDirections[j]);
+                if (hit.collider != null)
+                {
+                    info.AddHit(hit, Vector3.Reflect(info.outDirections[j], hit.normal));
                 }
             }
         }
