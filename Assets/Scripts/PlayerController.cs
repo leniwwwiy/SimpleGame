@@ -38,10 +38,10 @@ public class PlayerController : MonoBehaviour {
         {
             Unit.Piu();
         }
-        if (Input.GetKeyDown(Raycast))
+        if (Input.GetKey(Raycast))
         {
             //Unit.raycastTargets(10);
-            //Unit.raycastTargets(4);
+            Unit.Aiming(10);
         }
     }
 

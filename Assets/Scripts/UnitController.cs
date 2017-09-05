@@ -136,60 +136,55 @@ public class UnitController : MonoBehaviour
 
         return ans;
     }
-    public void Aiming()
+    public RaycastInfo Aiming(int deep)
     {
-        KeyValuePair<Vector3, Vector3> first = new KeyValuePair<Vector3, Vector3>(Vector3.right, Vector3.right);
-        Vector3 source = transform.position + transform.up * (GetComponent<CircleCollider2D>().radius * transform.localScale.x + 0.1f);
+        List<RaycastInfo> ans = new List<RaycastInfo>();
+        float angle = 1f;
 
-        Vector3 nextDirection = transform.up;
-        RaycastHit2D hit = Physics2D.Raycast(source, nextDirection);
-        if (hit && hit.collider != null)
+        for (float i = 0; i < angle; i += angle)
         {
-            Debug.DrawRay(source, transform.up * Vector3.Distance(source, hit.point), Color.red);
-            if (hit.collider.gameObject.GetComponent<UnitController>())
-            {
+            RaycastInfo info = new RaycastInfo();
 
-            }
-            else
+            info.source = transform.position + transform.up * (GetComponent<CircleCollider2D>().radius * transform.localScale.x + 0.1f);
+            info.direction = transform.up;
+            RaycastHit2D hit = Physics2D.Raycast(info.source, info.direction);
+            if (hit.collider != null)
             {
-                if (Mathf.Abs(Vector3.Angle(nextDirection, hit.normal) - reflectAngle) > 0.01)
-                {
-                    first = new KeyValuePair<Vector3, Vector3>(hit.point, Vector3.Reflect(nextDirection, hit.normal));
-                }
+                info.AddHit(hit, Vector3.Reflect(info.direction, hit.normal));
             }
-        }
-        else
-        {
-            Debug.DrawRay(source, transform.up * 10, Color.red);
+            ans.Add(info);
         }
 
-        bool da = (first.Key == first.Value && first.Key == Vector3.right);
-        while (da)
+        if (ans[0].count < 1)
         {
-            Vector3 source2 = first.Key, dir = first.Value;
-            dir.Normalize();
-            RaycastHit2D hit2 = Physics2D.Raycast(source2, dir);
-            if (hit2 && hit2.collider != null)
+            Debug.DrawRay(ans[0].source, ans[0].direction, Color.red, 1f, true);
+        }
+
+       // for (int i = 0; i < ans.Count; ++i)
+       // {
+            RaycastInfo info1 = ans[0];
+
+            for (int j = 0; j < deep && j < info1.count; ++j)
             {
-                if (hit2.collider.gameObject.GetComponent<UnitController>())
+                RaycastHit2D oldHit = info1.hits[j];
+                if (oldHit.collider.gameObject.GetComponent<BulletScript>() || oldHit.collider.gameObject.GetComponent<UnitController>())
                 {
-                    Debug.DrawRay(source2, dir * Vector3.Distance(source2, hit2.point), Color.blue);
+                    Debug.DrawRay(oldHit.point, info1.outDirections[j] * Vector3.Distance(oldHit.point, oldHit.point), Color.red, 1f, true);
+                    continue;
                 }
                 else
                 {
-                    Debug.DrawRay(source2, dir * Vector3.Distance(source2, hit2.point), Color.red);
+                    Debug.DrawRay(oldHit.point, info1.outDirections[j] * Vector3.Distance(oldHit.point, oldHit.point), Color.blue, 1f, true);
                 }
-                if (Mathf.Abs(Vector3.Angle(dir, hit2.normal) - reflectAngle) > 0.01)
+                RaycastHit2D hit = Physics2D.Raycast(oldHit.point + new Vector2(info1.outDirections[j].x * 0.1f, info1.outDirections[j].y * 0.1f), info1.outDirections[j]);
+                if (hit.collider != null)
                 {
-                    first = new KeyValuePair<Vector3, Vector3>(hit2.point, Vector3.Reflect(dir, hit2.normal));
+                    info1.AddHit(hit, Vector3.Reflect(info1.outDirections[j], hit.normal));
                 }
             }
-            else
-            {
-                Debug.DrawRay(source2, dir * 10, Color.red);
-            }
-            da = (first.Key == first.Value && first.Key == Vector3.right);
-        }
+       // }
+        Debug.Log(ans[0].count);
+        return ans[0];
     }
 
     public void Piu()
