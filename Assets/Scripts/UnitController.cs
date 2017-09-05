@@ -121,6 +121,11 @@ public class UnitController : MonoBehaviour
                 {
                     Debug.DrawRay(oldHit.point, info.outDirections[j] * Vector3.Distance(oldHit.point, oldHit.point), Color.blue);
                 }
+                if (oldHit.collider.gameObject.GetComponent<BulletScript>())
+                {
+                    Debug.DrawRay(oldHit.point, info.outDirections[j] * Vector3.Distance(oldHit.point, oldHit.point), Color.red);
+                    continue;
+                }
                 RaycastHit2D hit = Physics2D.Raycast(oldHit.point + new Vector2(info.outDirections[j].x * 0.1f, info.outDirections[j].y * 0.1f), info.outDirections[j]);
                 if (hit.collider != null)
                 {

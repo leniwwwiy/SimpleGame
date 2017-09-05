@@ -2,23 +2,41 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AIController : MonoBehaviour {
+public class AIController : MonoBehaviour
+{
     public UnitController Unit;
     public UnitController targetUnit;
     private List<RaycastInfo> raycastResult;
-    void Start () {
-        Debug.Log(TryToShot());
+    bool needToPiu = false;
+    Vector3 needDirection;
+    void Start()
+    {
     }
 
-	void Update () {
+    void Update()
+    {
+        if (TryToShot())
+        {
+            needToPiu = true;
+        }
+        else
+        {
+            needToPiu = false;
+        }
+        if (needToPiu)
+        {
+            Unit.transform.up = needDirection;
+            Unit.Piu();
+        }
     }
 
     bool TryToShot()
     {
         raycastResult = Unit.raycastTargets(4);
-        foreach (var info in raycastResult)
+        for (int it = 0; it < raycastResult.Count; ++it)
         {
-            if (info.count<0)
+            RaycastInfo info = raycastResult[it];
+            if (info.count < 1)
             {
                 continue;
             }
@@ -27,13 +45,9 @@ public class AIController : MonoBehaviour {
             {
                 if (!unit.enemy)
                 {
-                    while (Vector3.Angle(unit.transform.up, info.direction) > unit.UnitRotationSpeed)
-                    {
-                        unit.RotateLeft(Vector3.Angle(unit.transform.up, info.direction));
-                    }
-                    unit.Piu();
+                    needDirection = info.direction;
+                    return true;
                 }
-                return true;
             }
         }
         return false;
