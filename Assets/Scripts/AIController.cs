@@ -7,6 +7,7 @@ public class AIController : MonoBehaviour
     public UnitController Unit;
     public UnitController targetUnit;
     private List<RaycastInfo> raycastResult;
+    public int Difficulty = 4;
     bool needToPiu = false;
     Vector3 needDirection, targetPosition;
     void Start()
@@ -43,7 +44,7 @@ public class AIController : MonoBehaviour
 
     bool TryToShot()
     {
-        raycastResult = Unit.raycastTargets(4);
+        raycastResult = Unit.raycastTargets(Difficulty);
         for (int it = 0; it < raycastResult.Count; ++it)
         {
             RaycastInfo info = raycastResult[it];
